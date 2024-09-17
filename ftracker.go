@@ -55,7 +55,7 @@ func ShowTrainingInfo(action int, trainingType string, duration, weight, height 
 	case trainingType == "Ходьба":
 		distance := distance(action)
 		speed := meanSpeed(action, duration)
-		calories := WalkingSpentCalories(action, duration, weight, height/cmInM)
+		calories := WalkingSpentCalories(action, duration, weight, height)
 		return fmt.Sprintf("Тип тренировки: %s\nДлительность: %.2f ч.\nДистанция: %.2f км.\nСкорость: %.2f км/ч\nСожгли калорий: %.2f\n", trainingType, duration, distance, speed, calories)
 	case trainingType == "Плавание":
 		distance := distance(action)
@@ -82,7 +82,8 @@ const (
 // duration float64 — длительность тренировки в часах.
 func RunningSpentCalories(action int, weight, duration float64) float64 {
 
-	return ((runningCaloriesMeanSpeedMultiplier * meanSpeed(action, duration) * runningCaloriesMeanSpeedShift) * weight / mInKm * duration * minInH)
+	return ((runningCaloriesMeanSpeedMultiplier * meanSpeed(action, duration) *
+		runningCaloriesMeanSpeedShift) * weight / mInKm * duration * minInH)
 
 }
 
@@ -102,7 +103,16 @@ const (
 // height float64 — рост пользователя.
 func WalkingSpentCalories(action int, duration, weight, height float64) float64 {
 
-	return ((walkingCaloriesWeightMultiplier*weight + (math.Pow(meanSpeed(action, duration)*kmhInMsec, 2.0)/height)*walkingSpeedHeightMultiplier*weight) * duration * minInH)
+	// Проверка, что параметры имеют разумные значения
+	if duration <= 0 || weight <= 0 || height <= 0 {
+		return 0
+	}
+	meanSpeedInMsec := meanSpeed(action, duration) * kmhInMsec
+	heightInM := height / cmInM
+
+	return ((walkingCaloriesWeightMultiplier*weight +
+		(math.Pow(meanSpeedInMsec, 2)/heightInM)*
+			walkingSpeedHeightMultiplier*weight) * duration * minInH)
 
 }
 
@@ -136,6 +146,7 @@ func swimmingMeanSpeed(lengthPool, countPool int, duration float64) float64 {
 // weight float64 — вес пользователя.
 func SwimmingSpentCalories(lengthPool, countPool int, duration, weight float64) float64 {
 
-	return (swimmingMeanSpeed(lengthPool, countPool, duration) + swimmingCaloriesMeanSpeedShift) * 2 * weight * duration
+	return (swimmingMeanSpeed(lengthPool, countPool, duration) + swimmingCaloriesMeanSpeedShift) *
+		swimmingCaloriesWeightMultiplier * weight * duration
 
 }
